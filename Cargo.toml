@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "prelude",
+    "engine",
+    "spell_data"
+]

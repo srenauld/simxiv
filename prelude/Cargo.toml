@@ -1,0 +1,10 @@
+[package]
+name = "simxiv_prelude"
+version = "0.1.0"
+authors = ["Seb Renauld <seb.renauld@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+uuid = { version = "*", features = ["v4"] }
