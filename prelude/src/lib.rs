@@ -22,7 +22,7 @@ pub struct Moment {
 }
 impl Display for Moment {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> Result<(), FmtError> {
-        print!("{}", format!("{}:{:03}", self.s, self.m));
+        // print!("{}", format!("{}:{:03}", self.s, self.m));
         Ok(())
     }
 }

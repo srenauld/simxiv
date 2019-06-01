@@ -73,6 +73,29 @@ pub enum Status {
         start_time: Moment
     }
 }
+impl PartialEq for Status {
+    fn eq(&self, rhs:&Self) -> bool {
+        match (self, rhs) {
+            (
+                Status::Casting { source: left_source, target: left_target, spell: left_spell, start_time: left_start, end_time: left_end },
+                Status::Casting { source: right_source, target: right_target, spell: right_spell, start_time: right_start, end_time: right_end }
+            ) => {
+                left_source.id == right_source.id && left_target.id == right_target.id && left_spell.id == right_spell.id
+            },
+            (
+                Status::AnimationLocked { action: left_action, start_time: left_time, end_time: left_end },
+                Status::AnimationLocked { action: right_action, start_time: right_time, end_time: right_end },
+            ) => {
+                left_action.id == right_action.id
+            },
+            (
+                Status::Idle { start_time: left_time },
+                Status::Idle { start_time: right_time }
+            ) => true,
+            _ => false
+        }
+    }
+}
 
 #[derive(Clone)]
 pub struct Entity {
