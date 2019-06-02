@@ -68,7 +68,7 @@ impl Engine {
                     let mut target_entity = self.entities.get_mut(&target.id).unwrap();
                     target_entity.remove_aura(aura, Some(source.id))
                 }
-                if let Effect::Damage { ref source, ref target, ref action } = &effect {
+                if let Effect::Damage { ref source, ref target, ref action, ref potency, ref skill_type, ref r#type, ref periodic } = &effect {
                     return Ok(())
                 }
                 if let Effect::ModifyResource { ref target, ref resource, ref amount } = &effect {

@@ -5,8 +5,26 @@ use super::Job;
 use super::Job::*;
 use std::sync::{Arc, Mutex};
 use math::round::{floor, ceil};
-use rand::Rng;
-
+use rand::{StdRng, Rng};
+use rand::rngs::{ThreadRng};
+pub trait Random {
+    fn gen_f64(&mut self) -> f64;
+}
+pub struct PassthroughRandom {
+    inner: ThreadRng
+}
+impl PassthroughRandom {
+    pub fn new() -> Self {
+        Self {
+            inner: rand::thread_rng()
+        }
+    }
+}
+impl Random for PassthroughRandom {
+    fn gen_f64(&mut self) -> f64 {
+        self.inner.gen()
+    }
+}
 pub enum AttackRoll {
     Hit(bool),
     CriticalHit(bool)
@@ -40,12 +58,12 @@ pub trait DamageStrategy {
 }
 
 pub struct AssumedDamageStrategy {
-    prng: Arc<Mutex<Box<Rng>>>
+    prng: Arc<Mutex<Box<Random>>>
 }
 impl AssumedDamageStrategy {
     pub fn new() -> Self {
         Self {
-            prng: Arc::new(Mutex::new(Box::new(rand::thread_rng())))
+            prng: Arc::new(Mutex::new(Box::new(PassthroughRandom::new())))
         }
     }
     pub fn primary_stat(&self, job:&Job) -> &str {
@@ -288,6 +306,21 @@ impl AssumedDamageStrategy {
 }
 impl DamageStrategy for AssumedDamageStrategy {
     fn apply_damage(&self, target:&Entity, damage: RawDamage) -> AppliedDamage {
+        let mut rng = self.prng.lock().unwrap();
+        let div_modifier:f64 = self.level_div(&target.level).into();
+
+        let def:f64 = match damage.r#type {
+            DamageType::Magic(_) => {
+                let coefficient:f64 = 15.0 * (target.get_statistic("Magic Defense") as f64)/div_modifier;
+                floor(coefficient, 0)/100.0
+            },
+            _ => {
+                // Uses phys damage
+                let coefficient:f64 = 15.0 * (target.get_statistic("Defense") as f64)/div_modifier;
+                floor(coefficient, 0)/100.0
+            }
+        };
+
         AppliedDamage {
             value: damage.value,
             r#type: damage.r#type,
@@ -298,6 +331,7 @@ impl DamageStrategy for AssumedDamageStrategy {
     fn deal_damage(&self, source: &Entity, damage: Effect) -> RawDamage {
         // We're going to need the PRNG
         let mut rng = self.prng.lock().unwrap();
+        
         // Damage is guaranteed to be typed as Effect::Damage, but due to rust specifics, we need to cast it properly.
         // &Entity exists here for auras that do not snapshot.
         match damage {
@@ -356,8 +390,8 @@ impl DamageStrategy for AssumedDamageStrategy {
                 let inter_chr:f64 = 200.0 * (source.get_statistic("Critical Hit Rate") as f64 - sub_modifier)/div_modifier + 1000.0;
                 let f_chr:f64 = floor(inter_chr, 0)/1000.0;
                 // This tells us what we rolled offensively
-                let roll1:f64 = rng.gen();
-                let roll2:f64 = rng.gen();
+                let roll1:f64 = rng.gen_f64();
+                let roll2:f64 = rng.gen_f64();
                 let is_direct = (roll1- dhc) >= 0.0;
                 let damage_type = match (roll2 - dhc) >= 0.0 {
                     true => AttackRoll::CriticalHit(is_direct),
@@ -372,7 +406,7 @@ impl DamageStrategy for AssumedDamageStrategy {
                     f_tnc *
                     f_traits
                 , 0);
-                let random_factor:f64 = rng.gen();
+                let random_factor:f64 = rng.gen_f64();
                 let apply_damage = |input:f64, factor| {
                     let d:f64 = match periodic {
                         true => {
@@ -429,6 +463,5 @@ mod tests {
         let strat = AssumedDamageStrategy::new();
 
         // First, we set our stats
-
     }
 }
