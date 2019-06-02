@@ -1,9 +1,45 @@
 use super::Entity;
 use super::Moment;
+use std::sync::{Arc, RwLock};
+
+#[derive(Clone)]
+pub enum Element {
+    Fire,
+    Earth,
+    Unaspected
+}
+
+#[derive(Clone)]
+pub enum DamageType {
+    Blunt,
+    Slashing,
+    Piercing,
+    Magic(Element)
+}
+
+#[derive(Clone)]
+pub enum SkillType {
+    Auto,
+    Skill,
+    Spell
+}
+
 #[derive(Clone)]
 pub enum AuraEffect {
     DoT {
-        ticks: Vec<Moment>
+        id: u32,
+        ticks: Arc<RwLock<Vec<Moment>>>,
+        potency: u32,
+        skill_type: SkillType,
+        r#type: DamageType
+    },
+    DamageModifier {
+        damage_type: Vec<DamageType>,
+        modifier: i32
+    },
+    PotencyModifier {
+        damage_type: Vec<DamageType>,
+        modifier: i32
     }
 }
 #[derive(Clone)]

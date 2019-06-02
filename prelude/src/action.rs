@@ -10,6 +10,7 @@ pub enum ConditionalAction {
         selector: Arc<Box<Fn(&Entity, Vec<&Entity>) -> Option<Uuid>>>
     }
 }
+
 #[derive(Clone, Debug)]
 pub enum ActionTarget { 
     Direct {

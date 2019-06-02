@@ -1,4 +1,4 @@
-use super::{Entity, Moment, Action};
+use super::{Entity, Moment, Action, SkillType, DamageType};
 use uuid::Uuid;
 
 pub enum Effect {
@@ -16,7 +16,11 @@ pub enum Effect {
     Damage {
         source: Entity,
         target: Entity,
-        action: u32
+        action: u32,
+        potency: u32,
+        skill_type: SkillType,
+        r#type: DamageType,
+        periodic: bool
     },
     ModifyResource {
         target: Entity,

@@ -1,8 +1,13 @@
+extern crate math;
+extern crate rand;
+
 mod action;
 mod entity;
 mod effect;
 mod aura;
-pub use aura::Aura;
+mod damage;
+
+pub use aura::{AuraEffect, Aura, SkillType, DamageType};
 pub use effect::Effect;
 pub use action::ConditionalAction;
 pub use entity::{Job, Entity, Status};

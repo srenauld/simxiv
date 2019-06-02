@@ -1,12 +1,18 @@
 use super::Action;
+use super::AuraEffect;
 use super::Moment;
 use super::ConditionalAction;
 use std::sync::Arc;
 use std::collections::HashMap;
 use uuid::Uuid;
+use crate::{SkillType, DamageType};
 use super::Aura;
 use super::Effect;
 use crate::SimError;
+
+#[derive(Clone)]
+pub struct Trait {
+}
 
 #[derive(Clone)]
 pub struct Resource {
@@ -104,15 +110,28 @@ pub struct Entity {
     pub level: u16,
     pub job: Option<Job>,
     pub status: Status,
-    last_auto: Moment,
+    pub last_auto: Moment,
+    pub traits: Vec<Trait>,
     pub auras: HashMap<u32, Vec<Aura>>,
-    last_cast: HashMap<u32, Moment>,
+    last_tick: HashMap<(u32, Uuid), Moment>,
     statistics: HashMap<String, u32>,
     resources: HashMap<String, Resource>,
     action_repository: Arc<Vec<Action>>,
     action_list: Vec<ConditionalAction>
 }
 impl Entity {
+
+    pub fn get_statistic(&self, name:&str) -> u32 {
+        match self.statistics.get(&name.to_string()) {
+            Some(val) => {
+                val.clone()
+            },
+            None => 0
+        }
+    }
+    pub fn set_statistic(&mut self, name:&str, value:u32) {
+        self.statistics.insert(name.to_string(), value);
+    }
     pub fn remove_aura(&mut self, id:&u32, source: Option<Uuid>) {
         match self.auras.get_mut(id) {
             Some(ref mut aura_list) => aura_list.retain(|e| match source {
@@ -145,9 +164,10 @@ impl Entity {
             status: Status::Idle {
                 start_time: Moment::new(0, 0)
             },
+            traits: vec![],
             auras: HashMap::new(),
             last_auto: Moment::new(0, 0),
-            last_cast: HashMap::new(),
+            last_tick: HashMap::new(),
             statistics: HashMap::new(),
             resources: HashMap::new(),
             action_repository: repository,
@@ -163,8 +183,58 @@ impl Entity {
             resource.modify(amount)
         });
     }
+    pub fn process_dots(&self, moment: Moment) -> Vec<Effect> {
+        // Cycle through auras and find DoTs.
+        self.auras.iter().fold(vec![], |current_effects, (aura_id, aura)| {
+            aura.iter().fold(current_effects, |current_effects, aura| {
+                aura.effects.iter().map(|effect| {
+                    match effect {
+                        AuraEffect::DoT { id, ticks, potency, skill_type, r#type } => {
+                            let mut ticks_guard = ticks.write().unwrap();
+                            match ticks_guard.first() {
+                                Some(next_tick) => match next_tick < &moment {
+                                    true => {
+                                        // Convert the tick to damage
+                                        ticks_guard.remove(0);
+                                        Some(Effect::Damage {
+                                            periodic: true,
+                                            potency: potency.clone(),
+                                            source: aura.source.clone(),
+                                            target: aura.target.clone(),
+                                            skill_type: skill_type.clone(),
+                                            r#type: r#type.clone(),
+                                            action: aura.id.clone()
+                                        })
+                                    },
+                                    _ => None
+                                },
+                                _ => None
+                            }
+                        },
+                        _ => None
+                    }
+                }).filter(|r| r.is_some()).map(|r| r.unwrap()).collect()
+            })
+        })
+    }
+    pub fn potency_modifier(&self, skill_id: &u32, base_potency: u32) -> u32 {
+        base_potency
+    }
+    pub fn get_extra_ability_dhc(&self, d_type: &DamageType, skill_type: &SkillType, skill_id: &u32) -> f64 {
+        1.0
+    }
+    pub fn get_extra_ability_chc(&self, d_type: &DamageType, skill_type: &SkillType, skill_id: &u32) -> f64 {
+        1.0
+    }
+    pub fn modify_damage_from_ability(&self, skill_id: &u32, d_type: &DamageType, skill_type: &SkillType, base_damage: u32) -> u32 {
+        base_damage
+    }
+    pub fn get_traits_for_ability_damage(&self, d_type: &DamageType, skill_type: &SkillType, ability_id: u32) -> f64 {
+        1.0
+    }
     pub fn effects_at(&self, moment: Moment, entities: &HashMap<Uuid, Entity>) -> Result<Vec<Effect>, SimError> {
         let mut new_effects = vec![];
+
         if let Status::AnimationLocked { ref action, ref start_time, ref end_time } = &self.status {
             match end_time <= &moment {
                 true => {
