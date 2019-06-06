@@ -11,9 +11,7 @@ matrix:
     - rust: nightly
 
 script:
-- cargo install cargo-kcov
-- cargo test --no-run
-
+- cargo test --all
 
 cache:
     apt: true
@@ -37,9 +35,16 @@ addons:
 
 
 after_success: |
-    [ $TRAVIS_RUST_VERSION = stable ] &&
-    wget https://github.com/shaneutt/kcov/archive/master.tar.gz &&
-    tar xzf master.tar.gz && mkdir kcov-master/build && cd kcov-master/build && cmake .. && make && make install DESTDIR=../tmp && cd ../.. &&
-    ls target/debug && 
-    for PROGRAM_NAME in $(ls target/debug/simxiv_*); do; ./kcov-master/tmp/usr/local/bin/kcov --exclude-pattern=/.cargo target/kcov_$PROGRAM_NAME target/debug/$PROGRAM_NAME; done && 
-    ./kcov-master/tmp/usr/local/bin/kcov --exclude-pattern=/.cargo --merge target/kcov_* target/debug/simxiv_prelude*
+    [ $TRAVIS_RUST_VERSION = stable ] && wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
+    tar xzf master.tar.gz &&
+    cd kcov-master &&
+    mkdir build &&
+    cd build &&
+    cmake .. &&
+    make &&
+    sudo make install &&
+    cd ../.. &&
+    rm -rf kcov-master &&
+    for crate in WORKSPACE_MEMBERS lib; do for file in target/debug/$crate-*[^\.d]; do mkdir -p "target/cov/$(basename $file)"; kcov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/$(basename $file)" "$file"; done; done &&
+    bash <(curl -s https://codecov.io/bash) &&
+    echo "Uploaded code coverage"
