@@ -37,8 +37,9 @@ impl Engine {
         // At this point we have every effect that will happen. This means that we can safely use our entity map.
         effects.and_then(|e| {
             self.process_effects(new_time.clone(), e)
-        })
-        .map(|_| {
+        }).map(|_| {
+            // We're done with this iteration. Let's allow the entities to clear their internal state
+            self.entities.iter_mut().map(|(k, mut e)| e.cleanup(new_time.clone()));
             self.current_time = self.current_time.clone() + interval
         })
     }

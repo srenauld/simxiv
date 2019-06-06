@@ -121,6 +121,15 @@ pub struct Entity {
 }
 impl Entity {
 
+    pub fn can_dodge(&self, ability: &u32) -> bool {
+        false
+    }
+    pub fn can_parry(&self, ability: &u32) -> bool {
+        false
+    }
+    pub fn can_block(&self, ability: &u32) -> bool {
+        false
+    }
     pub fn get_statistic(&self, name:&str) -> u32 {
         match self.statistics.get(&name.to_string()) {
             Some(val) => {
@@ -150,6 +159,12 @@ impl Entity {
     pub fn has_own_aura(&self, id:&u32) -> Option<Aura> {
         let matching_auras:Vec<Aura> = self.auras_by_id(id).into_iter().filter(|aura| aura.source.id == self.id).collect::<Vec<Aura>>();
         matching_auras.first().cloned()
+    }
+    pub fn cleanup(&mut self, current_time: Moment) {
+        // Get rid of all the auras that are no longer relevant
+        self.auras.iter_mut().for_each(|(k, mut aura_list)| {
+            aura_list.retain(|o| o.end_time > current_time)
+        });
     }
     pub fn auras_by_id(&self, id:&u32) -> Vec<Aura> {
         self.auras.get(id).map(|r| r.clone()).or(Some(vec![])).unwrap()

@@ -1,6 +1,7 @@
 use super::{Entity, Moment, Action, SkillType, DamageType};
 use uuid::Uuid;
 
+#[derive(Clone)]
 pub enum Effect {
     ApplyAura {
         source: Entity,
