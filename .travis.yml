@@ -12,8 +12,7 @@ matrix:
 
 script:
 - cargo install cargo-kcov
-- cargo kcov --print-install-kcov-sh | sh
-- cargo test
+- cargo test --no-run
 
 
 cache:
